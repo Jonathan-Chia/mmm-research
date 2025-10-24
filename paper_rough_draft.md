@@ -12,8 +12,22 @@ The rest of this paper is organized as follows. In the [Background](#background)
 
 # Background
 
-MMM research started primarily in the 1960s as scholars and practicioners sought to understand how product, price, promotion, and distribution interact and influence performance. Some foundational research include ____. Early models used aggregate data in regression-based frameworks. Further research examined the interaction between differerent marketing variables, highlighting the need to coordinate advertising, pricing, and distribution. [Handbooks in Operations Research and Management Science - Marketing Mix Models Literature Review](https://www.sciencedirect.com/science/article/pii/S0927050705800386).
+MMM research started primarily in the 1960s as scholars and practicioners sought to understand how product, price, promotion, and distribution interact and influence performance (Borden, 1964; McCarthy, 1978). Early models used aggregate data in regression-based frameworks. Further research examined the interaction between differerent marketing variables, highlighting the need to coordinate advertising, pricing, and distribution. [Handbooks in Operations Research and Management Science - Marketing Mix Models Literature Review](https://www.sciencedirect.com/science/article/pii/S0927050705800386).
 
-Bayesian approaches to MMM started in ___.
+Bayesian approaches to MMM gained momentum in the late 2010s thanks to advances in sampling computation and newer research including key research from Google on carryover and shape effects (Jin, Wang, Sun, Chan, Koehler 2017) as well as hierarchical modeling (Sun, Wang, Jin, Chan, Koehler 2016). Bayesian MMMs help mitigate issues with multicollinearity, small data but high parameters, and uncertainty propogation.
 
-Common issues in MMM include ____. We examine funnel effects. 
+One issue that Bayesian MMMs might also be able to mitigate is the issue of funnel effects (Chan and Perry 2017). Funnel effects are biases that occur when marketing channels influence one another across stages of the customer journey—where upper-funnel activities affect both lower-funnel channels and final outcomes. For instance, a linear TV ad may increase paid search volume as well as directly drive sales. In this case, TV ads impact sales both directly and indirectly, but naive MMMs that assume independence between TV and search fail to capture this causal structure. The following research explores methods to mitigate these funnel effects.
+
+# Bayesian Linear Regression
+
+
+
+# References
+
+- Borden, N. H. (1964). The concept of the marketing mix. Journal of advertising research, 4 (2),
+2–7.
+- Jin, Y., Wang, Y., Sun, Y., Chan, D. & Koehler, J. (2017). Bayesian methods for media mix
+modeling with carryover and shape effects. research.google.com.
+- McCarthy, J. E. (1978). Basic marketing: a managerial approach (6th ed.). Homewood, Il: R.D.
+Irwin.
+- Sun, Y., Wang, Y., Jin, Y., Chan, D., & Koehler, J. (2016–2017). Geo-level Bayesian Hierarchical Media Mix Modeling. Google Research. (Hierarchical pooling across geographies; informative priors.) Google Services
