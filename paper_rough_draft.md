@@ -8,7 +8,7 @@ Our results show that ignoring the underlying causal structure can substantially
 
 # Introduction
 
-The rest of this paper is organized as follows. In the [Background](#background) section, we discuss the history, progression of MMMs, and current issues. In the [Methodology](#methodology) section, we explain our data generating process where the simulated data has upper funnel channel impacts on lower funnel channels. From there, we show how we set up different MMMs to retrieve our parameters. In the [Results](#results) section, we see that better priors can help mitigate causal issues. In the [Conclusion](#conclusion) section, we discuss future developments. 
+The rest of this paper is organized as follows. In the [Background](#background) section, we discuss the history and fundamentals of Bayesian MMMs. In the [Methodology](#methodology) section, we explain our data generating process where the simulated data has upper funnel channel impacts on lower funnel channels. From there, we show how we set up different MMMs to retrieve our parameters. In the [Results](#results) section, we see that better priors can help mitigate causal issues. In the [Conclusion](#conclusion) section, we discuss future developments. 
 
 # Background
 
@@ -18,7 +18,7 @@ Bayesian approaches to MMM gained momentum in the late 2010s thanks to advances 
 
 One issue that Bayesian MMMs might also be able to mitigate is the issue of funnel effects (Chan and Perry 2017). Funnel effects are biases that occur when marketing channels influence one another across stages of the customer journey—where upper-funnel activities affect both lower-funnel channels and final outcomes. For instance, a linear TV ad may increase paid search volume as well as directly drive sales. In this case, TV ads impact sales both directly and indirectly, but naive MMMs that assume independence between TV and search fail to capture this causal structure. The following research explores methods to mitigate these funnel effects.
 
-# Bayesian Linear Regression
+## Bayesian Linear Regression
 
 
 
