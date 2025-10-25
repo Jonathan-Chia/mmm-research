@@ -198,3 +198,30 @@ We expect to see that ignoring causality will have really bad results. It'll be 
 * Summarize background, current issues, current developments.
 * Summarize results.
 * Talk about future research opportunities, especially talk about how [CausalMMM](https://arxiv.org/pdf/2406.16728) might be the newest key development.
+
+
+## Hierarchical Bayesian MMM
+
+Hierarchical Bayesian MMMs extend Bayesian MMMs by introducing a hierarchy (Sun, Wang, Jin, Chan, & Koehler 2016–2017). For example, a hierarchical MMM might include national-level parameters for coefficients, while also estimating state-level parameters that capture local variations in the coefficients. This is particularly useful in practice because different regions/stores can have different outcomes. For example, if we are using a regular regression model to predict sales in the US using marketing spend as the predictor, there would be a single coefficient for marketing spend $\beta_m$. With a hierarchical regression, we would assign a local coefficient for marketing spend $\beta_{m,g}$ to each state. We would expect each state's marketing efficiency vary around the global efficiency $\beta_m$. Thus, we would have the following:
+
+$$ \beta_{m,g} \sim \mathcal{N}(\beta_m, \eta_m^2) $$
+
+Each of our state's coefficients come from a normal distribution centered around the global coefficient $\beta_m$ with a variance of $\eta_m^2$. 
+
+Control variables can also be modeled in this way:
+
+$$ \gamma_{c,g} \sim \mathcal{N}(\gamma_c, \xi_c^2) $$
+
+The intercepts can also be modeled in this way:
+
+$$ \tau_g \sim \mathcal{N}(\tau, \kappa^2) $$
+
+Finally, we piece it all together into this formula:
+
+$$ y_{t,g} = \tau_g + \sum_{m=1}^M \beta_{m,g} Adstock(Hill(x_{t,m,g}; K_m, S_m), \alpha_m, L) + \sum_{c=1}^C \gamma_{c,g} * z_{t,c,g} + \epsilon_{t,g} $$
+
+There are many benefits of this approach as mentioned in Sun, Wang, Jin, Chan, & Koehler (2016–2017). First, because the data is now on a more granular level, there's more data and more variation between in spend to feed the model, resulting in more accurate estimates of our global parameters. This includes more accurate estimates of the adstock and saturation parameters as well because the variability in spends lets the model explore more parts of the curves. Second, the granularity can also help reduce bias from strong correlations - generally at a national level ad spend and base demand are very correlated, but at geo level this correlation can be weaker. For example, summer vacation starts at different times in different states. Third, geos with sparse data can still be estimated well thanks to partial pooling from the global parameters. Overall, the additional nuance and variability in the data can produce a much more robust model compared to a model built using national aggregated data.
+
+Sun, Wang, Jin, Chan, & Koehler (2016–2017) also note the following limitations. First, it can be hard to gather this marketing data on a more granular level. National data can be imputed to geo levels, but with varying effectiveness. Second, the model might be incorrectly assuming that adstock and saturation are the same across geos. Third, imperfect controls still hurt estimates. Fourth, computation is much more complex and reaching stable estimates can take longer. Fifth, pooling isn't perfect. Really sparse geos can have weird estimates. 
+
+This paper focuses on exploring national funnel effects. Future research will explore these effects in hierarchical models. 
