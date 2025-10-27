@@ -245,13 +245,7 @@ Sales_t \sim \mathcal{N}(\mu_t, \sigma)
 $$
 
 $$
-\mu_t = \alpha
-+ \beta_1 \cdot \text{Display}_t
-+ \beta_2 \cdot \text{Search}_t
-+ \text{Fourier}_t \cdot \beta_{\text{fourier}}
-+ \beta_t \cdot trend
-+ \gamma_1 \cdot \text{Event1}_t
-+ \gamma_2 \cdot \text{Event2}_t
+\mu_t = \alpha + \beta_1 \cdot \text{Display}_t + \beta_2 \cdot \text{Search}_t + \text{Fourier}_t \cdot \beta_{\text{fourier}} + \beta_t \cdot trend + \gamma_1 \cdot \text{Event1}_t + \gamma_2 \cdot \text{Event2}_t
 $$
 
 ```python
@@ -276,20 +270,13 @@ Sales_t \sim \mathcal{N}(\mu_t, \sigma)
 $$
 
 $$
-\mu_t = \alpha
-+ \beta_1 \cdot \text{DisplayDirect}_t
-+ \beta_2 \cdot \text{DisplayAndSearch}_t
-+ \beta_3 \cdot \text{SearchDirect}_t
-+ \text{Fourier}_t \cdot \beta_{\text{fourier}}
-+ \beta_t \cdot trend
-+ \gamma_1 \cdot \text{Event1}_t
-+ \gamma_2 \cdot \text{Event2}_t
+\mu_t = \alpha + \beta_1 \cdot \text{DisplayDirect}_t + \beta_2 \cdot \text{DisplayAndSearch}_t + \beta_3 \cdot \text{SearchDirect}_t + \text{Fourier}_t \cdot \beta_{\text{fourier}} + \beta_t \cdot trend + \gamma_1 \cdot \text{Event1}_t + \gamma_2 \cdot \text{Event2}_t
 $$
 
 Where, on top of finding the $\beta$ coefficients, we also want to uncover the true proportion of display ads flowing into search:
 
 $$
-\pi \sim \text{Beta}(2, 2) \\
+\pi \sim \text{Beta}(2, 2)
 $$
 
 Since $\pi$ is a proportion between 0 and 1, modeling it as a beta distribution is perfect.
