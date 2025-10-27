@@ -187,14 +187,7 @@ Sales_t \sim \mathcal{N}(\mu_t, \sigma) \\
 $$
 
 $$
-\mu_t = \alpha
-+ \beta_1 \cdot \text{DisplayDirect}_t
-+ \beta_2 \cdot \text{DisplayAndSearch}_t
-+ \beta_3 \cdot \text{SearchDirect}_t \\
-+ \text{Fourier}_t \cdot \beta_{\text{fourier}}
-+ \beta_t \cdot trend
-+ \gamma_1 \cdot \text{Event1}_t
-+ \gamma_2 \cdot \text{Event2}_t
+\mu_t = \alpha + \beta_1 \cdot \text{DisplayDirect}_t + \beta_2 \cdot \text{DisplayAndSearch}_t + \beta_3 \cdot \text{SearchDirect}_t + \text{Fourier}_t \cdot \beta_{\text{fourier}} + \beta_t \cdot trend + \gamma_1 \cdot \text{Event1}_t + \gamma_2 \cdot \text{Event2}_t
 $$
 
 Code:
