@@ -448,7 +448,7 @@ The naive model gave search too much credit. Some of that credit should have gon
 |:--------:|:--------:|
 | ![Alt text 1](/assets/img/naive_contribution.png) | ![Alt text 2](assets/img/causal_contribution.png) |
 
-## Overall Thoughts - Naive vs. Causal
+## Summary - Naive vs. Causal
 
 The Causal MMM framework was too complex, leading to very wide parameter uncertainty. Maybe there's a smarter way to set up the model. This could be an avenue for future research.
 
@@ -486,7 +486,7 @@ The informed prior model recovered the contributions better.
 |:--------:|:--------:|
 | ![Alt text 1](/assets/img/naive_contribution.png) | ![Alt text 2](assets/img/informed_contribution.png) |
 
-## Overall Thoughts - Uninformed vs. Informed Priors
+## Summary - Uninformed vs. Informed Priors
 
 Adding an informed prior can help mitigate these funnel effect issues!
 
