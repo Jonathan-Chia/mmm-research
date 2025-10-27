@@ -1,14 +1,12 @@
 # Abstract
 
-Marketing Mix Modeling (MMM) has evolved from its roots in econometrics and time-series analysis into a sophisticated discipline that blends marketing theory with advanced statistical modeling [1](https://www.worldscientific.com/doi/epdf/10.1142/9789811272233_0005). Early MMMs relied on simple linear regressions to estimate channel effects, but progress in Bayesian inference and computation has driven a transition toward Bayesian models capable of capturing uncertainty, heterogeneity, and nonlinear effects such as adstock and saturation. Recent developments have focused on addressing critical issues in causality, unified measurement across marketing channels, and feature selection, all of which have profound implications for interpreting marketing effectiveness.
+Marketing Mix Modeling (MMM) has evolved from its roots in econometrics and time-series analysis into a sophisticated discipline that blends marketing theory with advanced statistical modeling (Hansens & Dekimpe 2023). Early MMMs relied on simple linear regressions to estimate channel effects, but progress in Bayesian inference and computation has driven a transition toward Bayesian models capable of capturing uncertainty, heterogeneity, and nonlinear effects such as adstock and saturation. Recent developments have focused on addressing critical issues in causality, unified measurement across marketing channels, and feature selection, all of which have profound implications for interpreting marketing effectiveness.
 
-This paper investigates one of the most persistent and overlooked challenges in MMMs—causal mis-specification. Using simulated data, we demonstrate how failing to correctly account for causal dependencies (e.g., treating intermediate variables such as branded search as independent drivers) can lead to significant bias in parameter estimates. We compare results from a naïve MMM implementation, similar to open-source frameworks like PyMC Marketing and Google Meridian, with a more causally accurate model and explore whether incorporating incrementality-based priors can partially correct these errors.
-
-Our results show that ignoring the underlying causal structure can substantially distort marketing effect estimates, leading to misguided optimization decisions. However, informed priors can mitigate some of these distortions. We conclude by discussing emerging approaches—such as causal graphical models, time-varying Bayesian structures, and hybrid frameworks like CausalMMM—that represent promising directions for building more accurate and interpretable marketing measurement systems.
+This paper investigates one of the most persistent and overlooked challenges in MMMs—causal mis-specification. Using simulated data, we demonstrate how failing to correctly account for causal dependencies (e.g., treating intermediate variables such as branded search as independent drivers) can lead to significant bias in parameter estimates. We compare results from a naïve MMM implementation, similar to open-source frameworks like PyMC Marketing and Google Meridian, with a more causally accurate model and explore whether incorporating incrementality-based priors can partially correct these errors. Our results show that ignoring the underlying causal structure can distort marketing effect estimates, leading to misguided optimization decisions; however, informed priors can mitigate some of these distortions. We conclude by discussing emerging approaches that seek to explicitly account for underlying causal structures.
 
 # Introduction
 
-The rest of this paper is organized as follows. In the [Background](#background) section, we discuss the history of Bayesian MMMs, how to code a Bayesian MMM, and then the core issue of causal mis-specification of funnel effects. In the [Methodology](#methodology) section, we explain our data generating process where the simulated data has upper funnel channel impacts on lower funnel channels. From there, we show how we set up different MMMs to retrieve our parameters. In the [Results](#results) section, we see that better priors can help mitigate causal issues. In the [Conclusion](#conclusion) section, we discuss future developments. 
+The rest of this paper is organized as follows. In the [Background](#background) section, we discuss the history of Bayesian MMMs, how to code a Bayesian MMM, and then the core issue of ignoring causal structure for funnel effects. In the [Methodology](#methodology) section, we explain our data generating process where the simulated data has upper funnel channel impacts on lower funnel channels. From there, we show how we set up different MMMs to retrieve our parameters. In the [Results](#results) section, we see that better priors can help mitigate causal issues. In the [Conclusion](#conclusion) section, we summarize results and briefly discuss future developments. 
 
 # Background
 
@@ -55,7 +53,7 @@ Bayesian MMM adds some marketing specific adjustments to Bayesian Linear regress
 
 $$ y_t = \sum_{i=1}^m \beta_i s_i(c_i(x_{t-l+1,i},...,x_{t,i}; \alpha_i); k_i, \lambda_i) + \sum_{j=1}^n \gamma_j z_{t,j} + \epsilon_t $$
 
-The $s_i$ and $c_i$ are the shape and carryover transformations (Jin, Wang, Sun, Chan, & Koehler 2017), and the $\gamma_j$ are control variables. The shape transformation models the diminishing returns of advertising: as an audience continues to see ads, eventually there's no more people to convert. Meanwhile, the carryover tranformation models the delayed effect of advertising. Lastly, the control variables help account for known confounders.
+The $s_i$ and $c_i$ are the shape and carryover transformations (Jin, Wang, Sun, Chan, & Koehler 2017), and the $\gamma_j$ are control variables. The shape transformation models the diminishing returns of advertising: as an audience continues to see ads and starts to convert, eventually there's less and less audience to convert. Meanwhile, the carryover tranformation models the delayed effect of advertising. Lastly, the control variables help account for known confounders.
 
 Here's the implementation:
 
@@ -151,9 +149,9 @@ We will investigate how bad ignoring this causality can be for MMMs using simula
 
 In our generated data, 70% of display ads impressions flows directly to sales, while 30% flow to paid search. Thus, there are three impacts:
 
-* Display ads direct impact on sales
-* Display and Search ads combined impact sales
-* Search ads direct impact on sales
+* Display ads direct impact on sales.
+* Display and search ads combined impact sales.
+* Search ads direct impact on sales.
 
 The data generating process is as follows:
 
@@ -176,7 +174,7 @@ The data generating process is as follows:
 
 ![alt text](/assets/img/adstock_saturation.png)
 
-5. Add seasonality and trend
+5. Add seasonality and trend.
 
 ![alt text](/assets/img/seasonality_trend.png)
 
@@ -184,9 +182,60 @@ The data generating process is as follows:
 
 7. Combine all of these to generate simulated sales.
 
+$$
+Sales_t \sim \mathcal{N}(\mu_t, \sigma) \\
+$$
 
+$$
+\mu_t = \alpha
++ \beta_1 \cdot \text{DisplayDirect}_t
++ \beta_2 \cdot \text{DisplayAndSearch}_t
++ \beta_3 \cdot \text{SearchDirect}_t \\
++ \text{Fourier}_t \cdot \beta_{\text{fourier}}
++ \beta_t \cdot trend
++ \gamma_1 \cdot \text{Event1}_t
++ \gamma_2 \cdot \text{Event2}_t \\
+$$
 
-When we model, we will assume we don't know this 70/30 split and use the model to recover it; the data fed to the model will only have display impressions and search impressions. 
+Code:
+
+```python
+df["intercept"] = 1
+df["epsilon"] = rng.normal(loc=0.0, scale=0.25, size=n)
+
+amplitude = 1
+beta_1 = 3.0 # display direct
+beta_2 = 4.0 # let's assume that being touched by both display and search increases a customer's chance to convert by a decent amount - keep in mind this costs more too
+beta_3 = 2.0 # search direct
+betas = [beta_1, beta_2, beta_3]
+proportion_display_to_search = 0.30 # 30% of impressions from display are funneled to search
+
+df['display_ads_adstock_saturated_direct'] = df['display_ads_adstock_saturated'] * (1 - proportion_display_to_search)
+df['display_search_adstock_saturated'] = df['display_ads_adstock_saturated'] * (proportion_display_to_search)
+df['paid_search_adstock_saturated_direct'] = df['paid_search_adstock_saturated'] - df['display_search_adstock_saturated']
+
+df["y"] = amplitude * (
+    df["intercept"]
+    + beta_1 * df['display_ads_adstock_saturated_direct']
+    + beta_2 * df['display_search_adstock_saturated']
+    + beta_3 * df['paid_search_adstock_saturated_direct']
+    + df["seasonality"]
+    + df["trend"]
+    + 1.5 * df["event_1"]
+    + 2.5 * df["event_2"]
+    + df["epsilon"] # this is the sigma
+)
+```
+
+When we model, we will assume we don't know this 70/30 split and use the model to recover it; the data fed to the model will only have display impressions and search impressions. Additionally, we will try to correctly recover the adstock, saturation, and contribution parameters.
+
+Here's the contribution parameters we want to recover:
+
+![alt text](assets/img/contribution.png)
+
+Here's the ROAS we want to recover:
+
+![alt text](/assets/img/roas.png)
 
 ## Naive Model 
 
@@ -198,34 +247,265 @@ Here's an example of PyMC's base model framework:
 
 In this above framework, marketing channels are treated independently.
 
-SHOW THE NAIVE MODEL CODE
+$$
+Sales_t \sim \mathcal{N}(\mu_t, \sigma) \\
+$$
 
-From there, we will build a more causally accurate MMM and see how close it can get to the true parameters. 
+$$
+\mu_t = \alpha
++ \beta_1 \cdot \text{Display}_t
++ \beta_2 \cdot \text{Search}_t
++ \text{Fourier}_t \cdot \beta_{\text{fourier}}
++ \beta_t \cdot trend
++ \gamma_1 \cdot \text{Event1}_t
++ \gamma_2 \cdot \text{Event2}_t \\
+$$
+
+```python
+    mu = pm.Deterministic(
+        "mu",
+        alpha
+        + display_contribution
+        + search_contribution
+        + fourier_contribution
+        + trend_contribution
+        + control1_contribution
+        + control2_contribution
+    )
+```
 
 ## Causal Model
 
-SHOW THE CAUSAL MODEL CODE
+From there, we will build a more causally accurate MMM and see how close it can get to the true parameters. 
 
-## Naive Model with Better Priors
+$$
+Sales_t \sim \mathcal{N}(\mu_t, \sigma) \\
+$$
 
-Lastly, we will examine if adding an incrementality estimate as a prior into the naive model can help push it in the right direction.
+$$
+\mu_t = \alpha
++ \beta_1 \cdot \text{DisplayDirect}_t
++ \beta_2 \cdot \text{DisplayAndSearch}_t
++ \beta_3 \cdot \text{SearchDirect}_t \\
++ \text{Fourier}_t \cdot \beta_{\text{fourier}}
++ \beta_t \cdot trend
++ \gamma_1 \cdot \text{Event1}_t
++ \gamma_2 \cdot \text{Event2}_t \\
+$$
 
-TODO
+Where, on top of finding the $\beta$ coefficients, we also want to uncover the true proportion of display ads flowing into search:
 
-# Results
+$$
+\pi \sim \text{Beta}(2, 2) \\
+$$
+
+Since $\pi$ is a proportion between 0 and 1, modeling it as a beta distribution is perfect.
+
+$$
+\text{DisplayAndSearch}_t = \pi \cdot \text{DisplayAds}_t \\
+\text{DisplayDirect}_t = (1 - \pi) \cdot \text{TotalDisplayAds}_t \\
+\text{SearchDirect}_t = \text{TotalPaidSearch}_t - \text{DisplayAndSearch}_t \\
+$$
+
+
+with these other priors (adjusted because y was scaled):
+
+$$
+\alpha \sim \mathcal{N}(0.5, 0.2) \\
+\beta_t \sim \text{HalfNormal}(0.02) \\
+\beta_{\text{fourier}} \sim \text{Laplace}(0, 0.2) \\
+\gamma_1, \gamma_2 \sim \mathcal{N}(0, 0.05) \\
+\beta_{\text{disp,dir}}, \beta_{\text{disp,search}}, \beta_{\text{search,dir}} \sim \text{HalfNormal}(0.5) \\
+\sigma \sim \text{HalfNormal}(2)
+$$
+
+We will add some uncertainty to the $\text{DisplayAndSearch}_t$ by modeling it as a normal distribution and adding a search $\sigma$.
+
+```python
+with pm.Model() as model:
+    # ----------------------
+    # Data
+    # ----------------------
+    display_ads = pm.Data("display_ads", scaled_data["display_ads"].values)
+    paid_search = pm.Data("paid_search", scaled_data["paid_search"].values)
+    t = pm.Data('t', scaled_data["t"].values)
+    event_1 = pm.Data('event1', scaled_data["event_1"].values)
+    event_2 = pm.Data('event2', scaled_data["event_2"].values)
+    y = pm.Data('y', scaled_data['y'].values)
+    # ----------------------
+    # Priors
+    # ----------------------
+    alpha = pm.Normal("alpha", 0.5, sigma=0.2)          # intercept
+    beta_t = pm.HalfNormal("beta_t", sigma=0.1)        # trend slope
+    # Fourier terms
+    beta_fourier = pm.Laplace("beta_fourier", mu=0.0, b=0.2, shape=fourier_terms.shape[1])
+    # Control events
+    gamma_control1 = pm.Normal("gamma_control1", 0, 0.05)
+    gamma_control2 = pm.Normal("gamma_control2", 0, 0.05)
+
+    # adstock and saturation
+    adstock_alpha1 = pm.Beta("adstock_alpha1", alpha=2, beta=2)
+    saturation_lam1 = pm.Gamma("saturation_lam1", alpha=3, beta=1)
+    saturation_beta1 = pm.HalfNormal("saturation_beta1", sigma=2)
+
+    adstock_alpha2 = pm.Beta("adstock_alpha2", alpha=2, beta=2)
+    saturation_lam2 = pm.Gamma("saturation_lam2", alpha=3, beta=1)
+    saturation_beta2 = pm.HalfNormal("saturation_beta2", sigma=2)
+
+    pi = pm.Beta("display_to_search_proportion", alpha=2, beta=2) # wide prior
+    display_transformed = forward_pass(display_ads,  adstock_alpha1, saturation_lam1, saturation_beta1)
+    search_transformed = forward_pass(paid_search, adstock_alpha2, saturation_lam2, saturation_beta2)
+
+    # Mediator: Display → Search
+    mu_ds = pi * display_transformed
+    sigma_ds = pm.HalfNormal("sigma_ds", sigma=0.2)
+    display_and_search = pm.Normal("display_and_search", mu=mu_ds, sigma=sigma_ds, shape=scaled_data['display_ads'].shape) # display and search is normally distributed with some random noise
+    display_direct = display_transformed - display_and_search
+    search_direct = search_transformed - display_and_search
+
+    beta_display_direct = pm.HalfNormal("beta_display_direct", sigma=0.5)
+    beta_display_and_search = pm.HalfNormal("beta_display_and_search", sigma=0.5)
+    beta_search_direct = pm.HalfNormal("beta_search_direct", sigma=0.5)
+
+    # Noise
+    sigma = pm.HalfNormal("sigma", sigma=2)
+
+    # combine everything to make mu of y
+    display_direct_contribution = pm.Deterministic("display_direct_contribution", beta_display_direct * display_direct)
+    display_and_search_contribution = pm.Deterministic("display_and_search_contribution", beta_display_and_search * display_and_search)
+    search_direct_contribution = pm.Deterministic("search_direct_contribution", beta_search_direct * search_direct)
+    fourier_contribution = pm.Deterministic("fourier_contribution", pm.math.dot(fourier_terms, beta_fourier))
+    trend_contribution = pm.Deterministic("trend_contribution", beta_t * t)
+    control1_contribution = pm.Deterministic("control1_contribution", gamma_control1 * event_1)
+    control2_contribution = pm.Deterministic("control2_contribution", gamma_control2 * event_2)
+    spend_display_direct = pm.Data("spend_display_direct", df["display_ads"].sum() * (1 - proportion_display_to_search))
+    spend_display_search = pm.Data("spend_display_search", df["display_ads"].sum() * proportion_display_to_search)
+    spend_search_direct = pm.Data("spend_search_direct", df["paid_search"].sum())
+
+    contrib_display_direct = pm.Deterministic("contrib_display_direct", beta_display_direct * display_direct.sum())
+    contrib_display_search = pm.Deterministic("contrib_display_search", beta_display_and_search * display_and_search.sum())
+    contrib_search_direct = pm.Deterministic("contrib_search_direct", beta_search_direct * search_direct.sum())
+
+    roas_1 = pm.Deterministic("roas_display_direct", contrib_display_direct / spend_display_direct)
+    roas_2 = pm.Deterministic("roas_display_search", contrib_display_search / spend_display_search)
+    roas_3 = pm.Deterministic("roas_search_direct", contrib_search_direct / spend_search_direct)
+
+
+    mu = pm.Deterministic(
+        "mu",
+        alpha
+        + display_direct_contribution
+        + display_and_search_contribution
+        + search_direct_contribution
+        + fourier_contribution
+        + trend_contribution
+        + control1_contribution
+        + control2_contribution
+    )
+
+    # Likelihood
+    Ylikelihood = pm.Normal("Ylikelihood", mu, sigma, observed=y)
+```
+
+## Naive Model with Informed Priors
+
+Lastly, we will examine if adding an incrementality estimate as a prior into the naive model can help improve parameter recovery.
+
+Let's assume we had our display ads vendor run an A/B test in their platform using ghost bids to make a clean test vs. control comparison. The results are encoded as this prior (adjusted for scaling of y):
+
+$$
+\beta_{\text{display}} \sim \text{Normal}(.64, 0.1)
+$$
+
+# Results - Naive vs. Causal
+
+## Model Fit
+
+Both models fit the data rather well.
+
+| Naive MMM | Causal MMM |
+|:--------:|:--------:|
+| ![Alt text 1](/assets/img/naive_posterior_preds.png) | ![Alt text 2](assets/img/causal_posterior_preds.png) |
+
+## Parameter Recovery
+
+Both models struggled to recover adstock and saturation parameters. They had similar results.
+
+| Naive MMM - Display | Causal MMM - Display |
+|:--------:|:--------:|
+| ![Alt text 1](/assets/img/naive_adstock_alpha1.png) | ![Alt text 2](assets/img/causal_adstock_alpha1.png) |
+
+| Naive MMM - Display | Causal MMM - Display |
+|:--------:|:--------:|
+| ![Alt text 1](/assets/img/naive_saturation.png) | ![Alt text 2](assets/img/causal_saturation.png) |
+
+## Contribution Recovery
+
+The naive model gave search too much credit. Some of that credit should have gone to display. Meanwhile, the causal MMM recovered the right direct search and display+search contributions albeit with very wide contribution intervals. 
+
+| Naive MMM | Causal MMM |
+|:--------:|:--------:|
+| ![Alt text 1](/assets/img/naive_contribution.png) | ![Alt text 2](assets/img/causal_contribution.png) |
+
+## Overall Thoughts - Naive vs. Causal
+
+The Causal MMM framework was too complex, leading to very wide parameter uncertainty. Maybe there's a smarter way to set up the model. This could be an avenue for future research.
+
+The Naive MMM framework was too simple, giving too much credit to paid search. 
+
+Let's now examine the results from using better priors for our Naive model.
+
+# Results - Uninformed vs. Informed Priors in Naive Model
+
+## Model Fit
+
+The informed prior didn't really affect the model fit. 
+
+| Uninformed | Informed |
+|:--------:|:--------:|
+| ![Alt text 1](/assets/img/naive_posterior_preds.png) | ![Alt text 2](assets/img/informed_posterior_preds.png) |
+
+## Parameter Recovery
+
+The informed prior model recovered the adstock parameter better. 
+
+| Uninformed - Display | Informed - Display |
+|:--------:|:--------:|
+| ![Alt text 1](/assets/img/naive_adstock_alpha1.png) | ![Alt text 2](assets/img/informed_adstock_alpha1.png) |
+
+| Uninformed - Display | Informed - Display |
+|:--------:|:--------:|
+| ![Alt text 1](/assets/img/naive_saturation.png) | ![Alt text 2](assets/img/informed_saturation.png) |
+
+## Contribution Recovery
+
+The informed prior model recovered the contributions better. 
+
+| Uninformed | Informed |
+|:--------:|:--------:|
+| ![Alt text 1](/assets/img/naive_contribution.png) | ![Alt text 2](assets/img/informed_contribution.png) |
+
+## Overall Thoughts - Uninformed vs. Informed Priors
+
+Adding an informed prior can help mitigate these funnel effect issues!
 
 # Conclusion
 
+From our analysis, we learned that naive MMMs will overcredit lower funnel channels, and informed priors can help mitigate funnel effect issues. 
 
+Our causal MMM did not perform well. Future research could work on improving this model; however, solutions for these causal issues are already being implemented in industry and academia. In industry, Sellforte and Recast sell a causal MMM solution. For example, Recast's model has been developed based on this causal dag:
 
-Solutions for these causal issues are already being implemented in industry and academia. Sellforte and Recast, MMM vendors, sell a causal MMM solution. ____ (2024) propose a novel MMM that estimates the causal structure automatically. 
+![recast](/assets/img/recast_causal_dag.png)
 
-For companies that are considering buying vs. building their own MMM, we recommend buying from these top vendors, or at least partnering with them to help build an in-house MMM, because most open-source MMM tools don't provide strong guidance to mitigate these causal issues. 
+In academia, Chen, Chan, Koehler, Perry, Wang, Sun, and Jin (2018) correct for paid search bias in media mix modeling by adding a demand proxy control variable. Gong, Yao, Zhang, Chen, Li, Su, and Bi (2024) propose a novel MMM that estimates the causal structure automatically. Additionally, there are existing modeling frameworks such as Structural Equation Modeling, multi-stage approaches, and more advanced Bayesian models that express the causal model as a joint probability distribution. 
 
 # References
 
 - Borden, N. H. (1964). The concept of the marketing mix. Journal of advertising research, 4 (2),
 2–7.
+- Chen, A., Chan, D., Koehler, J., Perry, M., Wang, Y., Sun, Y., & Jin, Y. (2018). Bias correction for paid search in media mix modeling. Google Research. https://research.google/pubs/bias-correction-for-paid-search-in-media-mix-modeling/
+- Gong, C., Yao, D., Zhang, L., Chen, S., Li, W., Su, Y., & Bi, J. (2024, March). Causalmmm: Learning causal structure for marketing mix modeling. In Proceedings of the 17th ACM International Conference on Web Search and Data Mining (pp. 238-246).
+- Hanssens, D. M., & Dekimpe, M. G. (2023). Econometric models. In R. S. Winer & S. A. Neslin (Eds.), The history of marketing science (pp. 117–151). World Scientific Publishing. https://doi.org/10.1142/9789811272233_0005
 - Jin, Y., Wang, Y., Sun, Y., Chan, D. & Koehler, J. (2017). Bayesian methods for media mix
 modeling with carryover and shape effects. research.google.com.
 - McCarthy, J. E. (1978). Basic marketing: a managerial approach (6th ed.). Homewood, Il: R.D.
