@@ -194,7 +194,7 @@ $$
 + \text{Fourier}_t \cdot \beta_{\text{fourier}}
 + \beta_t \cdot trend
 + \gamma_1 \cdot \text{Event1}_t
-+ \gamma_2 \cdot \text{Event2}_t \\
++ \gamma_2 \cdot \text{Event2}_t
 $$
 
 Code:
@@ -248,7 +248,7 @@ Here's an example of PyMC's base model framework:
 In this above framework, marketing channels are treated independently.
 
 $$
-Sales_t \sim \mathcal{N}(\mu_t, \sigma) \\
+Sales_t \sim \mathcal{N}(\mu_t, \sigma)
 $$
 
 $$
@@ -258,7 +258,7 @@ $$
 + \text{Fourier}_t \cdot \beta_{\text{fourier}}
 + \beta_t \cdot trend
 + \gamma_1 \cdot \text{Event1}_t
-+ \gamma_2 \cdot \text{Event2}_t \\
++ \gamma_2 \cdot \text{Event2}_t
 $$
 
 ```python
@@ -279,18 +279,18 @@ $$
 From there, we will build a more causally accurate MMM and see how close it can get to the true parameters. 
 
 $$
-Sales_t \sim \mathcal{N}(\mu_t, \sigma) \\
+Sales_t \sim \mathcal{N}(\mu_t, \sigma)
 $$
 
 $$
 \mu_t = \alpha
 + \beta_1 \cdot \text{DisplayDirect}_t
 + \beta_2 \cdot \text{DisplayAndSearch}_t
-+ \beta_3 \cdot \text{SearchDirect}_t \\
++ \beta_3 \cdot \text{SearchDirect}_t
 + \text{Fourier}_t \cdot \beta_{\text{fourier}}
 + \beta_t \cdot trend
 + \gamma_1 \cdot \text{Event1}_t
-+ \gamma_2 \cdot \text{Event2}_t \\
++ \gamma_2 \cdot \text{Event2}_t
 $$
 
 Where, on top of finding the $\beta$ coefficients, we also want to uncover the true proportion of display ads flowing into search:
@@ -302,20 +302,41 @@ $$
 Since $\pi$ is a proportion between 0 and 1, modeling it as a beta distribution is perfect.
 
 $$
-\text{DisplayAndSearch}_t = \pi \cdot \text{DisplayAds}_t \\
-\text{DisplayDirect}_t = (1 - \pi) \cdot \text{TotalDisplayAds}_t \\
-\text{SearchDirect}_t = \text{TotalPaidSearch}_t - \text{DisplayAndSearch}_t \\
+\text{DisplayAndSearch}_t = \pi \cdot \text{DisplayAds}_t
+$$
+
+$$
+\text{DisplayDirect}_t = (1 - \pi) \cdot \text{TotalDisplayAds}_t
+$$
+
+$$
+\text{SearchDirect}_t = \text{TotalPaidSearch}_t - \text{DisplayAndSearch}_t
 $$
 
 
 with these other priors (adjusted because y was scaled):
 
 $$
-\alpha \sim \mathcal{N}(0.5, 0.2) \\
-\beta_t \sim \text{HalfNormal}(0.02) \\
-\beta_{\text{fourier}} \sim \text{Laplace}(0, 0.2) \\
-\gamma_1, \gamma_2 \sim \mathcal{N}(0, 0.05) \\
-\beta_{\text{disp,dir}}, \beta_{\text{disp,search}}, \beta_{\text{search,dir}} \sim \text{HalfNormal}(0.5) \\
+\alpha \sim \mathcal{N}(0.5, 0.2)
+$$
+
+$$
+\beta_t \sim \text{HalfNormal}(0.02)
+$$
+
+$$
+\beta_{\text{fourier}} \sim \text{Laplace}(0, 0.2)
+$$
+
+$$
+\gamma_1, \gamma_2 \sim \mathcal{N}(0, 0.05)
+$$
+
+$$
+\beta_{\text{disp,dir}}, \beta_{\text{disp,search}}, \beta_{\text{search,dir}} \sim \text{HalfNormal}(0.5)
+$$
+
+$$
 \sigma \sim \text{HalfNormal}(2)
 $$
 
@@ -497,7 +518,7 @@ Our causal MMM did not perform well. Future research could work on improving thi
 
 ![recast](/assets/img/recast_causal_dag.png)
 
-In academia, Chen, Chan, Koehler, Perry, Wang, Sun, and Jin (2018) correct for paid search bias in media mix modeling by adding a demand proxy control variable. Gong, Yao, Zhang, Chen, Li, Su, and Bi (2024) propose a novel MMM that estimates the causal structure automatically. Additionally, there are existing modeling frameworks such as Structural Equation Modeling, multi-stage approaches, and more advanced Bayesian models that express the causal model as a joint probability distribution. 
+In academia, Chen, Chan, Koehler, Perry, Wang, Sun, and Jin (2018) correct for paid search bias in media mix modeling by adding a demand proxy control variable. Gong, Yao, Zhang, Chen, Li, Su, and Bi (2024) propose a novel MMM that estimates the causal structure automatically. Additionally, there are existing modeling frameworks such as Structural Equation Modeling, multi-stage approaches, and more advanced Bayesian models that express the causal model as a joint probability distribution. The future is bright for causally accurate MMMs. 
 
 # References
 
