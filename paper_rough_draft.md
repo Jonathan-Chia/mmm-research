@@ -14,7 +14,7 @@ The rest of this paper is organized as follows. In the [Background](#background)
 
 MMM research started primarily in the 1960s-1970s as scholars and practicioners sought to understand how product, price, promotion, and distribution interact and influence performance (Borden, 1964; McCarthy, 1978). Early models used aggregate data in regression-based frameworks. Bayesian approaches to MMM gained momentum in the late 2010s thanks to advances in sampling computation and newer research including key research from Google on carryover and shape effects (Jin, Wang, Sun, Chan, Koehler 2017) as well as hierarchical modeling (Sun, Wang, Jin, Chan, Koehler 2016). Bayesian MMMs help mitigate issues with multicollinearity, small data but high parameters, and uncertainty propogation. 
 
-The next sub-sections demonstrates the development from Bayesian Linear Regression to Bayesian MMMs:
+The next sub-sections demonstrates the development from Bayesian Linear Regression to Bayesian MMMs and then the concept of funnel effects:
 
 ## Bayesian Linear Regression
 
@@ -136,16 +136,16 @@ Unlike in regular MMMs, the shape and carryover parameters are random variables 
 
 ## Funnel Effects
 
-One issue in regular MMMs that Bayesian MMMs might be able to mitigate is the issue of funnel effects (Chan and Perry 2017). Funnel effects are biases that occur when marketing channels influence one another across stages of the customer journey—where upper-funnel activities affect both lower-funnel channels and final outcomes. For instance, a linear TV ad may increase paid search volume as well as directly drive sales. In this case, TV ads impact sales both directly and indirectly, but naive MMMs that assume independence between TV and search fail to capture this causal structure. 
+Ignoring causality in MMM research is already a documented issue. Funnel effects are biases that occur when marketing channels influence one another across stages of the customer journey—where upper-funnel activities affect both lower-funnel channels and final outcomes (Chan and Perry 2017). For instance, a linear TV ad may increase paid search volume as well as directly drive sales. In this case, TV ads impact sales both directly and indirectly, but naive MMMs that assume independence between TV and search fail to capture this causal structure. 
 
 # Methodology
 
 With smarter priors or with causally accurate modeling, the Bayesian MMM should be able to better handle these funnel effects.
 
-We start with a simple premise - paid search is an intermediary lower funnel channel:
+We started with a simple premise - paid search is an intermediary lower funnel channel:
 ![alt text](assets/img/causal_dag.png)
 
-We will investigate how bad ignoring this causality can be for MMMs using simulated data that reflects this real world causality. Because the data is simulated, we will know the true parameters. A good MMM should be able to recover these true parameters. 
+Using simulated data that reflects the above premise, we investigate how ignoring this causality biases results. Because the data is simulated, we will know the true parameters. A good MMM should be able to recover these true parameters. 
 
 ## Data Generating Process
 
