@@ -228,9 +228,13 @@ Here's the contribution parameters we want to recover:
 
 ![alt text](assets/img/contribution.png)
 
+TODO: add the contribution parameter for just search and display as well. 
+
 Here's the ROAS we want to recover:
 
 ![alt text](/assets/img/roas.png)
+
+TODO: add the ROAS we want to recover for just search and display as well.
 
 ## Naive Model 
 
@@ -263,9 +267,19 @@ $$
     )
 ```
 
+## Naive Model with Informed Priors
+
+Next, we will examine if adding an incrementality estimate as a prior into the naive model can help improve parameter recovery.
+
+Let's assume we had our display ads vendor run an A/B test in their platform using ghost bids to make a clean test vs. control comparison. The results are encoded as this prior (adjusted for scaling of y):
+
+$$
+\beta_{\text{display}} \sim \text{Normal}(.64, 0.1)
+$$
+
 ## Causal Model
 
-From there, we will build a more causally accurate MMM and see how close it can get to the true parameters. 
+Lastly, we will build a more causally accurate MMM and see how close it can get to the true parameters. 
 
 $$
 Sales_t \sim \mathcal{N}(\mu_t, \sigma)
@@ -410,15 +424,39 @@ with pm.Model() as model:
     Ylikelihood = pm.Normal("Ylikelihood", mu, sigma, observed=y)
 ```
 
-## Naive Model with Informed Priors
+# Results - Uninformed vs. Informed Priors in Naive Model
 
-Lastly, we will examine if adding an incrementality estimate as a prior into the naive model can help improve parameter recovery.
+## Model Fit
 
-Let's assume we had our display ads vendor run an A/B test in their platform using ghost bids to make a clean test vs. control comparison. The results are encoded as this prior (adjusted for scaling of y):
+The informed prior didn't really affect the model fit. 
 
-$$
-\beta_{\text{display}} \sim \text{Normal}(.64, 0.1)
-$$
+| Uninformed | Informed |
+|:--------:|:--------:|
+| ![Alt text 1](/assets/img/naive_posterior_preds.png) | ![Alt text 2](assets/img/informed_posterior_preds.png) |
+
+## Parameter Recovery
+
+The informed prior model recovered the adstock parameter better. 
+
+| Uninformed - Display | Informed - Display |
+|:--------:|:--------:|
+| ![Alt text 1](/assets/img/naive_adstock_alpha1.png) | ![Alt text 2](assets/img/informed_adstock_alpha1.png) |
+
+| Uninformed - Display | Informed - Display |
+|:--------:|:--------:|
+| ![Alt text 1](/assets/img/naive_saturation.png) | ![Alt text 2](assets/img/informed_saturation.png) |
+
+## Contribution Recovery
+
+The informed prior model recovered the contributions better. 
+
+| Uninformed | Informed |
+|:--------:|:--------:|
+| ![Alt text 1](/assets/img/naive_contribution.png) | ![Alt text 2](assets/img/informed_contribution.png) |
+
+## Summary - Uninformed vs. Informed Priors
+
+Adding an informed prior can help mitigate these funnel effect issues!
 
 # Results - Naive vs. Causal
 
@@ -457,40 +495,6 @@ The Causal MMM framework was too complex, leading to very wide parameter uncerta
 The Naive MMM framework was too simple, giving too much credit to paid search. 
 
 Let's now examine the results from using better priors for our Naive model.
-
-# Results - Uninformed vs. Informed Priors in Naive Model
-
-## Model Fit
-
-The informed prior didn't really affect the model fit. 
-
-| Uninformed | Informed |
-|:--------:|:--------:|
-| ![Alt text 1](/assets/img/naive_posterior_preds.png) | ![Alt text 2](assets/img/informed_posterior_preds.png) |
-
-## Parameter Recovery
-
-The informed prior model recovered the adstock parameter better. 
-
-| Uninformed - Display | Informed - Display |
-|:--------:|:--------:|
-| ![Alt text 1](/assets/img/naive_adstock_alpha1.png) | ![Alt text 2](assets/img/informed_adstock_alpha1.png) |
-
-| Uninformed - Display | Informed - Display |
-|:--------:|:--------:|
-| ![Alt text 1](/assets/img/naive_saturation.png) | ![Alt text 2](assets/img/informed_saturation.png) |
-
-## Contribution Recovery
-
-The informed prior model recovered the contributions better. 
-
-| Uninformed | Informed |
-|:--------:|:--------:|
-| ![Alt text 1](/assets/img/naive_contribution.png) | ![Alt text 2](assets/img/informed_contribution.png) |
-
-## Summary - Uninformed vs. Informed Priors
-
-Adding an informed prior can help mitigate these funnel effect issues!
 
 # Conclusion
 
