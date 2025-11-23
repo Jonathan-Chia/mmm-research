@@ -228,17 +228,21 @@ Here's the contribution parameters we want to recover:
 
 ![alt text](assets/img/contribution.png)
 
-TODO: add the contribution parameter for just search and display as well. 
+Here's the contribution, rolling up to just paid search and display ads:
+
+![alt text](assets/img/contribution_combined.png)
 
 Here's the ROAS we want to recover:
 
 ![alt text](/assets/img/roas.png)
 
-TODO: add the ROAS we want to recover for just search and display as well.
+Here's the ROAS, rolling up to just paid search and display ads:
+
+![alt text](/assets/img/roas_combined.png)
 
 ## Naive Model 
 
-First, we will build a naive MMM (replicating base model frameworks that we see in [PyMC Marketing](https://www.pymc-marketing.io/en/latest/)) and see how close it can get to the true parameters.
+First, we build a naive MMM (replicating base model frameworks that we see in [PyMC Marketing](https://www.pymc-marketing.io/en/latest/)) and see how close it can get to the true parameters.
 
 Here's an example of PyMC's base model framework:
 
@@ -269,7 +273,7 @@ $$
 
 ## Naive Model with Informed Priors
 
-Next, we will examine if adding an incrementality estimate as a prior into the naive model can help improve parameter recovery.
+Next, we add an incrementality estimate as a prior into the naive model to help improve parameter recovery.
 
 Let's assume we had our display ads vendor run an A/B test in their platform using ghost bids to make a clean test vs. control comparison. The results are encoded as this prior (adjusted for scaling of y):
 
@@ -279,7 +283,7 @@ $$
 
 ## Causal Model
 
-Lastly, we will build a more causally accurate MMM and see how close it can get to the true parameters. 
+Lastly, we build a more causally accurate MMM. 
 
 $$
 Sales_t \sim \mathcal{N}(\mu_t, \sigma)
@@ -302,11 +306,11 @@ $$
 $$
 
 $$
-\text{DisplayDirect}_t = (1 - \pi) \cdot \text{TotalDisplayAds}_t
+\text{DisplayDirect}_t = (1 - \pi) \cdot \text{DisplayAds}_t
 $$
 
 $$
-\text{SearchDirect}_t = \text{TotalPaidSearch}_t - \text{DisplayAndSearch}_t
+\text{SearchDirect}_t = \text{PaidSearch}_t
 $$
 
 
@@ -349,11 +353,14 @@ with pm.Model() as model:
     event_1 = pm.Data('event1', scaled_data["event_1"].values)
     event_2 = pm.Data('event2', scaled_data["event_2"].values)
     y = pm.Data('y', scaled_data['y'].values)
+    spend_display_direct = pm.Data("spend_display_direct", scaled_data['display_ads'].sum() * (1 - proportion_display_to_search))
+    spend_display_search = pm.Data("spend_display_search", scaled_data['display_ads'].sum() * proportion_display_to_search)
+    spend_search_direct = pm.Data("spend_search_direct", scaled_data['paid_search'].sum())
     # ----------------------
     # Priors
     # ----------------------
-    alpha = pm.Normal("alpha", 0.5, sigma=0.2)          # intercept
-    beta_t = pm.HalfNormal("beta_t", sigma=0.1)        # trend slope
+    alpha = pm.Normal("alpha", 0.4, sigma=2)          # intercept
+    beta_t = pm.Normal("beta_t", sigma=2)        # trend slope
     # Fourier terms
     beta_fourier = pm.Laplace("beta_fourier", mu=0.0, b=0.2, shape=fourier_terms.shape[1])
     # Control events
@@ -378,7 +385,7 @@ with pm.Model() as model:
     sigma_ds = pm.HalfNormal("sigma_ds", sigma=0.2)
     display_and_search = pm.Normal("display_and_search", mu=mu_ds, sigma=sigma_ds, shape=scaled_data['display_ads'].shape) # display and search is normally distributed with some random noise
     display_direct = display_transformed - display_and_search
-    search_direct = search_transformed - display_and_search
+    search_direct = search_transformed
 
     beta_display_direct = pm.HalfNormal("beta_display_direct", sigma=0.5)
     beta_display_and_search = pm.HalfNormal("beta_display_and_search", sigma=0.5)
@@ -388,20 +395,32 @@ with pm.Model() as model:
     sigma = pm.HalfNormal("sigma", sigma=2)
 
     # combine everything to make mu of y
-    display_direct_contribution = pm.Deterministic("display_direct_contribution", beta_display_direct * display_direct)
+    beta_display_direct_unscaled = pm.Deterministic(
+    "beta_display_direct_unscaled",
+    beta_display_direct * y_max
+    )
+    beta_display_and_search_unscaled = pm.Deterministic(
+    "beta_display_and_search_unscaled",
+    beta_display_and_search * y_max
+    )
+    beta_search_direct_unscaled = pm.Deterministic(
+    "beta_search_direct_unscaled",
+    beta_search_direct * y_max
+    )
+    display_direct_contribution_unscaled = pm.Deterministic("display_direct_contribution_unscaled",beta_display_direct_unscaled * display_direct)
+    display_and_search_contribution_unscaled = pm.Deterministic("display_and_search_contribution_unscaled", beta_display_and_search_unscaled * display_and_search)
+    search_direct_contribution_unscaled = pm.Deterministic("search_direct_contribution_unscaled", beta_search_direct_unscaled * search_direct)
+    display_direct_contribution = pm.Deterministic("display_direct_contribution",beta_display_direct * display_direct)
     display_and_search_contribution = pm.Deterministic("display_and_search_contribution", beta_display_and_search * display_and_search)
     search_direct_contribution = pm.Deterministic("search_direct_contribution", beta_search_direct * search_direct)
     fourier_contribution = pm.Deterministic("fourier_contribution", pm.math.dot(fourier_terms, beta_fourier))
     trend_contribution = pm.Deterministic("trend_contribution", beta_t * t)
     control1_contribution = pm.Deterministic("control1_contribution", gamma_control1 * event_1)
     control2_contribution = pm.Deterministic("control2_contribution", gamma_control2 * event_2)
-    spend_display_direct = pm.Data("spend_display_direct", df["display_ads"].sum() * (1 - proportion_display_to_search))
-    spend_display_search = pm.Data("spend_display_search", df["display_ads"].sum() * proportion_display_to_search)
-    spend_search_direct = pm.Data("spend_search_direct", df["paid_search"].sum())
 
-    contrib_display_direct = pm.Deterministic("contrib_display_direct", beta_display_direct * display_direct.sum())
-    contrib_display_search = pm.Deterministic("contrib_display_search", beta_display_and_search * display_and_search.sum())
-    contrib_search_direct = pm.Deterministic("contrib_search_direct", beta_search_direct * search_direct.sum())
+    contrib_display_direct = pm.Deterministic("contrib_display_direct", beta_display_direct_unscaled * display_direct.sum())
+    contrib_display_search = pm.Deterministic("contrib_display_search", beta_display_and_search_unscaled * display_and_search.sum())
+    contrib_search_direct = pm.Deterministic("contrib_search_direct", beta_search_direct_unscaled * search_direct.sum())
 
     roas_1 = pm.Deterministic("roas_display_direct", contrib_display_direct / spend_display_direct)
     roas_2 = pm.Deterministic("roas_display_search", contrib_display_search / spend_display_search)
@@ -426,9 +445,13 @@ with pm.Model() as model:
 
 # Results - Uninformed vs. Informed Priors in Naive Model
 
+Using informed priors helped the naive model to recover the parameters better. 
+
 ## Model Fit
 
-The informed prior didn't really affect the model fit. 
+The informed prior did not improve model fit.
+
+The black line is the actuals, and the dark blue area is the 50% HDI (credible interval), while the light blue is the 94% HDI. The $R^2$, or explained variance, of each model was the same. An $R^2$ of 86% means that the model accounted for 86% of the variance -  a decent result. 
 
 | Uninformed | Informed |
 |:--------:|:--------:|
@@ -436,7 +459,9 @@ The informed prior didn't really affect the model fit.
 
 ## Parameter Recovery
 
-The informed prior model recovered the adstock parameter better. 
+The informed prior model recovered the adstock and saturation parameters better. 
+
+The below charts show the posterior distribution of the parameters, with the dotted vertical lines displaying the actual true value. The black boxplot inside the area chart represents the credible intervals. The uninformed model's posteriors were both a bit too low, while the informed model was just right.
 
 | Uninformed - Display | Informed - Display |
 |:--------:|:--------:|
@@ -448,21 +473,35 @@ The informed prior model recovered the adstock parameter better.
 
 ## Contribution Recovery
 
-The informed prior model recovered the contributions better. 
+The naive model gave search too much contribution. Some of that contribution should have gone to display. The informed model lowered the contribution given to search, and its 94% HDIs capture the true contribution values.
 
 | Uninformed | Informed |
 |:--------:|:--------:|
 | ![Alt text 1](/assets/img/naive_contribution.png) | ![Alt text 2](assets/img/informed_contribution.png) |
 
+## ROAS Recovery
+
+Similar to contributions, the naive model gave too much credit to search. 
+
+The blue hill is the posterior distribution, with the black rectangle representing the 94% HDI, and the orange line representing the true value. The uninformed model gave search a mean of 2.8. The true ROAS is actually 1.54865, which falls in the bottom 0.3% of this posterior distribution; thus, the uninformed model greatly overestimated search. Likewise, although the informed model was closer to the real display ROAS, it also overestimated search. 
+
+| Uninformed | Informed |
+|:--------:|:--------:|
+| ![Alt text 1](/assets/img/naive_roas.png) | ![Alt text 2](assets/img/informed_roas.png) |
+
 ## Summary - Uninformed vs. Informed Priors
 
-Adding an informed prior can help mitigate these funnel effect issues!
+In the informed model, achieving the desired final ROAS for display was challenging because the $\beta$, adstock, and saturation parameters all interact to determine a channel's contribution. To steer the model toward a higher display ROAS, we found that simply increasing the $\beta$ prior was insufficient; we had to increase the $\beta$ prior while simultaneously adjusting the saturation prior to ensure the curve remained steep and efficient across the observed spend levels. This initial prior adjustment only significantly impacted the display ROAS, adstock, and saturation parameters. 
+
+Addressing potential funnel bias—where lower-funnel channels like search are often over-credited—would require more nuanced and potentially joint priors that take some contribution from lower funnel and credit it to upper funnel. This could be an avenue for future research. 
 
 # Results - Naive vs. Causal
 
+Next, we compare our naive model vs. our causally accurate model.
+
 ## Model Fit
 
-Both models fit the data rather well.
+Both models fit the data rather well, with $R^2$ of 86% and 89% respectively.
 
 | Naive MMM | Causal MMM |
 |:--------:|:--------:|
@@ -482,29 +521,37 @@ Both models struggled to recover adstock and saturation parameters. They had sim
 
 ## Contribution Recovery
 
-The naive model gave search too much credit. Some of that credit should have gone to display. Meanwhile, the causal MMM recovered the right direct search and display+search contributions albeit with very wide contribution intervals. 
+The naive model recovered the contribution better than the causal model, which has very wide intervals and incorrect display direct and search direct parameters.
 
 | Naive MMM | Causal MMM |
 |:--------:|:--------:|
 | ![Alt text 1](/assets/img/naive_contribution.png) | ![Alt text 2](assets/img/causal_contribution.png) |
 
+## ROAS Recovery
+
+The uncertainty in the causal model contribution intervals are reflected in the ROAS as well, especially for display+search posterior ranging from 0 to 10 ROAS. 
+
+| Uninformed | Informed |
+|:--------:|:--------:|
+| ![Alt text 1](/assets/img/naive_roas.png) | ![Alt text 2](assets/img/causal_roas.png) |
+
 ## Summary - Naive vs. Causal
 
-The Causal MMM framework was too complex, leading to very wide parameter uncertainty. Maybe there's a smarter way to set up the model. This could be an avenue for future research.
-
-The Naive MMM framework was too simple, giving too much credit to paid search. 
-
-Let's now examine the results from using better priors for our Naive model.
+The Naive MMM framework was too simple, assigning too much credit to paid search, while the Causal MMM framework was too complex, leading to very wide parameter uncertainty. There must be a smarter, yet simpler way to set up the model. This could also be an avenue for future research.
 
 # Conclusion
 
-From our analysis, we learned that naive MMMs will overcredit lower funnel channels, and informed priors can help mitigate funnel effect issues. 
+This study set out to demonstrate that while open-source MMMs democratize analysis, their inherent simplicity and abstraction risk encouraging a "plug-and-play" mentality that ignores causal dependencies between marketing channels, such as the downstream effect of display on search.
 
-Our causal MMM did not perform well. Future research could work on improving this model; however, solutions for these causal issues are already being implemented in industry and academia. In industry, Sellforte and Recast sell a causal MMM solution. For example, Recast's model has been developed based on this causal dag:
+Our findings confirmed this risk for our particular data generation framework: we demonstrated that naive MMMs overcredited lower-funnel channels, leading to biased parameter estimates. Critically, we showed that carefully constructed, informed priors can help mitigate these biases (future research will need to be conducted on much more complex data generation frameworks that better represent real world marketing environments).
+
+Conversely, our exploration into causally accurate, yet complex models confirmed the second part of our thesis: simply integrating the full causal structure does not guarantee superior performance and can, in fact, introduce new sources of bias or estimation instability.
+
+The road to a truly accurate MMM lies in balancing causal fidelity with model tractability. Solutions for these causal issues are already being implemented in industry and academia. In industry, Sellforte and Recast sell a causal MMM solution. For example, Recast's model has been developed based on this causal dag:
 
 ![recast](/assets/img/recast_causal_dag.png)
 
-In academia, Chen, Chan, Koehler, Perry, Wang, Sun, and Jin (2018) correct for paid search bias in media mix modeling by adding a demand proxy control variable. Gong, Yao, Zhang, Chen, Li, Su, and Bi (2024) propose a novel MMM that estimates the causal structure automatically. Additionally, there are existing modeling frameworks such as Structural Equation Modeling, multi-stage approaches, and more advanced Bayesian models that express the causal model as a joint probability distribution. The future is bright for causally accurate MMMs. 
+In academia, Chen, Chan, Koehler, Perry, Wang, Sun, and Jin (2018) correct for paid search bias in media mix modeling by adding a demand proxy control variable. Gong, Yao, Zhang, Chen, Li, Su, and Bi (2024) propose a novel MMM that estimates the causal structure automatically. Additionally, there are existing modeling frameworks such as Structural Equation Modeling, multi-stage approaches, and more advanced Bayesian models that express the causal model as a joint probability distribution. Despite the many challenges of causally accurate MMMs, the research in academia and in industry show that the future of MMM is bright.
 
 # References
 
@@ -519,3 +566,8 @@ modeling with carryover and shape effects. research.google.com.
 Irwin.
 - Sun, Y., Wang, Y., Jin, Y., Chan, D., & Koehler, J. (2016–2017). Geo-level Bayesian Hierarchical Media Mix Modeling. Google Research. (Hierarchical pooling across geographies; informative priors.) Google Services
 - Wood, C. (2025, October 10). Nearly half of US marketers plan to invest in MMM over the next year. eMarketer. Retrieved from https://www.emarketer.com/content/nearly-half-of-us-marketers-plan-invest-mmm-over-next-year
+
+# Code
+
+- https://github.com/Jonathan-Chia/mmm-research/blob/main/bayesian_mmm_causal_issues.ipynb
+- collab notebook: https://colab.research.google.com/drive/1kZuOqCIhHcSRsWBgVpA48mvsB633QXuq?usp=sharing
