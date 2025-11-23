@@ -1,3 +1,4 @@
+# Ignoring Causality in Open Source MMMs 
 # Abstract
 
 Marketing Mix Models (MMM) are powerful analytical models that help businesses optimize marketing budgets despite uncertainty coming from an increasingly complex marketing ecosystem where privacy regulations, incomplete tracking data, economic fluctuations, platform-level black boxes, and dynamically changing consumer behavior create large gaps in visibility. According to an Emarketer survey of 196 marketing professionals in the US in 2025 (Wood 2025), "nearly half (46.9%) of US brand and agency marketers plan to invest in marketing mix modeling (MMM) over the next year." 
@@ -531,7 +532,7 @@ The naive model recovered the contribution better than the causal model, which h
 
 The uncertainty in the causal model contribution intervals are reflected in the ROAS as well, especially for display+search posterior ranging from 0 to 10 ROAS. 
 
-| Uninformed | Informed |
+| Naive MMM | Causal MMM |
 |:--------:|:--------:|
 | ![Alt text 1](/assets/img/naive_roas.png) | ![Alt text 2](assets/img/causal_roas.png) |
 
